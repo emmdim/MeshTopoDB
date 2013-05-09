@@ -6,8 +6,8 @@ from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'MeshTopoDBServer.views.home', name='home'),
-    # url(r'^MeshTopoDBServer/', include('MeshTopoDBServer.foo.urls')),
+    # url(r'^$', 'GenServer.views.home', name='home'),
+    # url(r'^GenServer/', include('GenServer.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
