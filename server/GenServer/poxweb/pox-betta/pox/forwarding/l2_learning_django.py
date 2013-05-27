@@ -15,6 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with POX.  If not, see <http://www.gnu.org/licenses/>.
 
+
+# This file also contains additions described here:
+# http://pieknywidok.blogspot.com.es/2012/08/djangoflow-part-two-quick-and-simple-ui.html
+# that concern the integration of POX with django
+
+
+# Further additions are made by Manos Dimogerontakis
+
+
 """
 An L2 learning switch.
 
@@ -24,9 +33,16 @@ exact-match rules for each flow.
 """
 
 from django.core.management import setup_environ
-from mysite import settings
+import sys
+sys.path.append('../../')
+#import os
+#os.environ['DJANGO_SETTINGS_MODULE'] = 'GenServer.settings'
+#from django.conf import settings
+from GenServer import settings
 setup_environ(settings)
+
 from poxweb.models import Flow
+
 
 
 from pox.core import core
@@ -107,6 +123,7 @@ class LearningSwitch (object):
     for flow in Flow.objects.all():
         self.AddFlowFromModel(flow)
         #msg.buffer_id = event.ofp.buffer_id # 6a
+    return
 
   def _handle_PacketIn (self, event):
     """
@@ -190,6 +207,31 @@ class LearningSwitch (object):
         msg.data = event.ofp # 6a
         self.connection.send(msg)
 
+  def AddFlowFromModel(self, flow):
+    # add outgoing flow
+    msg = of.ofp_flow_mod()
+    msg.match = of.ofp_match()
+    msg.match.dl_type = ethernet.IP_TYPE
+    msg.match.nw_src = str(flow.internalip)
+    msg.match.nw_dst = str(flow.externalip)
+    msg.match.in_port = flow.internalport
+    msg.idle_timeout = flow.idletime
+    msg.hard_timeout = flow.hardtime
+    msg.actions.append(of.ofp_action_output(port = flow.externalport))
+    log.debug("installing Manos Flow 1")
+    self.connection.send(msg)
+    # add incoming flow
+    msg = of.ofp_flow_mod()
+    msg.match = of.ofp_match()
+    msg.match.dl_type = ethernet.IP_TYPE
+    msg.match.nw_src = str(flow.externalip)
+    msg.match.nw_dst = str(flow.internalip)
+    msg.match.in_port = flow.externalport
+    msg.idle_timeout = flow.idletime
+    msg.hard_timeout = flow.hardtime
+    msg.actions.append(of.ofp_action_output(port = flow.internalport))
+    log.debug("installing Manos Flow 2")
+    self.connection.send(msg)
 
 class l2_learning (object):
   """
@@ -216,28 +258,3 @@ def launch (transparent=False, hold_down=_flood_delay):
     raise RuntimeError("Expected hold-down to be a number")
 
   core.registerNew(l2_learning, str_to_bool(transparent))
-
-
-def AddFlowFromModel(self, flow):
-    # add outgoing flow
-    msg = of.ofp_flow_mod()
-    msg.match = of.ofp_match()
-    msg.match.dl_type = ethernet.IP_TYPE
-    msg.match.nw_src = str(flow.internalip)
-    msg.match.nw_dst = str(flow.externalip)
-    msg.match.in_port = flow.internalport
-    msg.idle_timeout = flow.idletime
-    msg.hard_timeout = flow.hardtime
-    msg.actions.append(of.ofp_action_output(port = flow.externalport))
-    self.connection.send(msg)
-    # add incoming flow
-    msg = of.ofp_flow_mod()
-    msg.match = of.ofp_match()
-    msg.match.dl_type = ethernet.IP_TYPE
-    msg.match.nw_src = str(flow.externalip)
-    msg.match.nw_dst = str(flow.internalip)
-    msg.match.in_port = flow.externalport
-    msg.idle_timeout = flow.idletime
-    msg.hard_timeout = flow.hardtime
-    msg.actions.append(of.ofp_action_output(port = flow.internalport))
-    self.connection.send(msg)
